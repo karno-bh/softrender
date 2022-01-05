@@ -1,5 +1,5 @@
 from PIL import Image, ImageDraw
-from softredner.canvas import Canvas
+from softrender.canvas import Canvas
 
 import os
 
