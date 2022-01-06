@@ -1,5 +1,5 @@
 import abc
-from softrender.canvas import Canvas
+from softrender.canvas import Canvas, Canvas2
 
 
 def for_loop(start, condition, iteration):
@@ -13,12 +13,12 @@ class GraphicsBase(abc.ABC):
 
     def __init__(self, canvas: Canvas) -> None:
         super().__init__()
-        assert isinstance(canvas, Canvas), "canvas is not of type Canvas"
-        self._canvas = canvas
+        # assert isinstance(canvas, Canvas), "canvas is not of type Canvas"
+        self.canvas = canvas
 
-    @property
-    def canvas(self):
-        return self._canvas
+    # @property
+    # def canvas(self):
+    #     return self._canvas
 
 
 class Graphics1(GraphicsBase):
@@ -45,7 +45,7 @@ class Graphics2(GraphicsBase):
 
 class Graphics3(GraphicsBase):
 
-    def __init__(self, canvas: Canvas) -> None:
+    def __init__(self, canvas) -> None:
         super().__init__(canvas)
 
     def line(self, x0, y0, x1, y1, color):
@@ -65,3 +65,64 @@ class Graphics3(GraphicsBase):
             else:
                 self.canvas.pixel(x, y, color)
 
+
+class Graphics4(GraphicsBase):
+
+    def __init__(self, canvas) -> None:
+        super().__init__(canvas)
+
+    def line(self, x0, y0, x1, y1, color):
+        c = self.canvas
+        steep = False
+        if abs(x0 - x1) < abs(y0 - y1):
+            x0, y0 = y0, x0
+            x1, y1 = y1, x1
+            steep = True
+        if x0 > x1:
+            x0, x1 = x1, x0
+            y0, y1 = y1, y0
+        dx = x1 - x0
+        dy = y1 - y0
+        derror = abs(dy / float(dx))
+        error = 0.0
+        y = y0
+        for x in range(x0, x1 + 1):
+            if steep:
+                c.pixel(y, x, color)
+            else:
+                c.pixel(x, y, color)
+            error += derror
+            if error > 0.5:
+                y += 1 if y1 > y0 else -1
+                error -= 1.0
+
+
+class Graphics5(GraphicsBase):
+
+    def __init__(self, canvas) -> None:
+        super().__init__(canvas)
+
+    def line(self, x0, y0, x1, y1, color):
+        c = self.canvas
+        steep = False
+        if abs(x0 - x1) < abs(y0 - y1):
+            x0, y0 = y0, x0
+            x1, y1 = y1, x1
+            steep = True
+        if x0 > x1:
+            x0, x1 = x1, x0
+            y0, y1 = y1, y0
+        dx = x1 - x0
+        dy = y1 - y0
+        derror2 = abs(dy) * 2
+        error2 = 0.0
+        y = y0
+        for x in range(x0, x1 + 1):
+            if steep:
+                c.pixel(y, x, color)
+            else:
+                c.pixel(x, y, color)
+            error2 += derror2
+            if error2 > dx:
+                y += 1 if y1 > y0 else -1
+                error2 -= dx * 2
