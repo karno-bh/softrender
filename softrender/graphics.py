@@ -207,8 +207,9 @@ class Graphics6(GraphicsBase):
         total_diff_v = v2 - v0
         first_half_diff_v = v1 - v0
         second_half_diff_v = v2 - v1
-        for i in range(total_height):
-            second_half = i > first_half_dy or v1[Y] == v2[Y]
+        # +1 is a hack to draw lines in the end of triangle
+        for i in range(total_height + 1):
+            second_half = i > first_half_dy # or v1[Y] == v2[Y]
             segment_height = second_half_dy if second_half else first_half_dy
             if segment_height == 0:
                 # print("divide by zero")
