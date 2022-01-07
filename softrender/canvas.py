@@ -10,12 +10,15 @@ class Canvas:
             self._canvas.append(column)
 
     def pixel(self, x, y, d=None, r=0, g=0, b=0):
-        if d is not None:
-            r, g, b = d
-        p = self._canvas[x][y]
-        p[0] = r
-        p[1] = g
-        p[2] = b
+        try:
+            if d is not None:
+                r, g, b = d
+            p = self._canvas[x][y]
+            p[0] = r
+            p[1] = g
+            p[2] = b
+        except:
+            pass
 
     def __bytes__(self):
         bytearr = []
