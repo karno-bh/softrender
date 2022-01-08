@@ -1,11 +1,12 @@
 import abc
 from softrender.canvas import Canvas
 from softrender.colors import *
-from softrender.math import Vec2
+from softrender.math import Vec2, Vec3
 
 
 X = 0
 Y = 1
+Z = 2
 
 def for_loop(start, condition, iteration):
     value = start
@@ -223,11 +224,15 @@ class Graphics6(GraphicsBase):
             for x in range(int(a[X]), int(b[X] + 1)):
                 c.pixel(x, i + v0[Y], color)
 
+
 # Main Graphics Object
 class Graphics(GraphicsBase):
 
     def __init__(self, canvas) -> None:
         super().__init__(canvas)
+
+    def pixel(self, x, y, d=None, r=0, g=0, b=0):
+        self.canvas.pixel(x, y, d, r, g, b)
 
     def line(self, x0, y0, x1, y1, color):
         c = self.canvas
@@ -253,3 +258,52 @@ class Graphics(GraphicsBase):
             if error2 > dx:
                 y += 1 if y1 > y0 else -1
                 error2 -= dx * 2
+
+    def line_vert(self, v1, v2, color):
+        x0, y0 = v1
+        x1, y1 = v2
+        self.line(x0, y0, x1, y1, color)
+
+    def triangle(self, v0, v1, v2, color, zbuf):
+        if v0[Y] == v1[Y] == v2[Y]:
+            return
+        c = self.canvas
+        v0, v1, v2 = [Vec3(v=v) for v in sorted((v0, v1, v2), key=lambda v: v[1])]
+        total_height = v2[Y] - v0[Y]
+        first_half_dy = v1[Y] - v0[Y]
+        second_half_dy = v2[Y] - v1[Y]
+        total_diff_v = v2 - v0
+        first_half_diff_v = v1 - v0
+        second_half_diff_v = v2 - v1
+        # +1 is a hack to draw lines in the end of triangle
+        for i in range(total_height + 1):
+            second_half = i > first_half_dy or v1[Y] == v0[Y]
+            segment_height = second_half_dy if second_half else first_half_dy
+            # if segment_height == 0:
+            #     # print("divide by zero")
+            #     continue
+            alpha = i / float(total_height)
+            beta = (i - (first_half_dy if second_half else 0)) / float(segment_height)
+            a = v0 + total_diff_v * alpha
+            b = (v1 + second_half_diff_v * beta) if second_half else (v0 + first_half_diff_v * beta)
+            a = Vec3(v=[int(k) for k in a])
+            b = Vec3(v=[int(k) for k in b])
+            if a[X] > b[X]:
+                a, b = b, a
+            for x in range(int(a[X]), int(b[X] + 1)):
+                phi = 1.0 if b[X] == a[X] else (x - a[X]) / float(b[X] - a[X])
+                # d = b - a
+                p = a + (b - a) * phi
+                px, py, pz = p
+                xx, yy, zval = int(px), int(py), int(pz)
+                # c.pixel(int(px), int(py), color)
+                # c.pixel(x, i + v0[Y], color)
+                # zval = int(a[Z] + (b[Z] - a[Z]) * phi)
+                # xx = x
+                # yy = i + v0[Y]
+                # # print("xx", xx, "yy", yy)
+                zbuf_val, zbuf_col = zbuf[xx][yy]
+                if zbuf_val < zval:
+                    pz_color = zval, color
+                    zbuf[xx][yy] = pz_color
+                    c.pixel(x, i + v0[Y], d=color)
