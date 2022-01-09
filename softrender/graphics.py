@@ -307,3 +307,108 @@ class Graphics(GraphicsBase):
                     pz_color = zval, color
                     zbuf[xx][yy] = pz_color
                     c.pixel(x, i + v0[Y], d=color)
+
+        def triangle(self, v0, v1, v2, color, zbuf):
+            if v0[Y] == v1[Y] == v2[Y]:
+                return
+        c = self.canvas
+        v0, v1, v2 = [Vec3(v=v) for v in sorted((v0, v1, v2), key=lambda v: v[1])]
+        total_height = v2[Y] - v0[Y]
+        first_half_dy = v1[Y] - v0[Y]
+        second_half_dy = v2[Y] - v1[Y]
+        total_diff_v = v2 - v0
+        first_half_diff_v = v1 - v0
+        second_half_diff_v = v2 - v1
+        # +1 is a hack to draw lines in the end of triangle
+        for i in range(total_height + 1):
+            second_half = i > first_half_dy or v1[Y] == v0[Y]
+            segment_height = second_half_dy if second_half else first_half_dy
+            # if segment_height == 0:
+            #     # print("divide by zero")
+            #     continue
+            alpha = i / float(total_height)
+            beta = (i - (first_half_dy if second_half else 0)) / float(segment_height)
+            a = v0 + total_diff_v * alpha
+            b = (v1 + second_half_diff_v * beta) if second_half else (v0 + first_half_diff_v * beta)
+            a = Vec3(v=[int(k) for k in a])
+            b = Vec3(v=[int(k) for k in b])
+            if a[X] > b[X]:
+                a, b = b, a
+            for x in range(int(a[X]), int(b[X] + 1)):
+                phi = 1.0 if b[X] == a[X] else (x - a[X]) / float(b[X] - a[X])
+                # d = b - a
+                p = a + (b - a) * phi
+                px, py, pz = p
+                xx, yy, zval = int(px), int(py), int(pz)
+                # c.pixel(int(px), int(py), color)
+                # c.pixel(x, i + v0[Y], color)
+                # zval = int(a[Z] + (b[Z] - a[Z]) * phi)
+                # xx = x
+                # yy = i + v0[Y]
+                # # print("xx", xx, "yy", yy)
+                zbuf_val, zbuf_col = zbuf[xx][yy]
+                if zbuf_val < zval:
+                    pz_color = zval, color
+                    zbuf[xx][yy] = pz_color
+                    c.pixel(x, i + v0[Y], d=color)
+
+    def triangle_texture(self, t0, t1, t2, texture, zbuf, intensity):
+        VI = 0
+        TI = 1
+        if t0[VI][Y] == t1[VI][Y] == t2[VI][Y]:
+            return
+        c = self.canvas
+        vs = []
+        vts = []
+        for t in sorted((t0, t1, t2), key=lambda t_val: t_val[VI][Y]):
+            vs.append(t[VI])
+            vts.append(t[TI])
+        v0, v1, v2 = vs
+        vt0, vt1, vt2 = vts
+        total_height = v2[Y] - v0[Y]
+        first_half_dy = v1[Y] - v0[Y]
+        second_half_dy = v2[Y] - v1[Y]
+        total_diff_v = v2 - v0
+        first_half_diff_v = v1 - v0
+        second_half_diff_v = v2 - v1
+        # +1 is a hack to draw lines in the end of triangle
+        for i in range(total_height + 1):
+            second_half = i > first_half_dy or v1[Y] == v0[Y]
+            segment_height = second_half_dy if second_half else first_half_dy
+            # if segment_height == 0:
+            #     # print("divide by zero")
+            #     continue
+            alpha = i / float(total_height)
+            beta = (i - (first_half_dy if second_half else 0)) / float(segment_height)
+            a = v0 + total_diff_v * alpha
+            b = (v1 + second_half_diff_v * beta) if second_half else (v0 + first_half_diff_v * beta)
+            a = Vec3(v=[int(k) for k in a])
+            b = Vec3(v=[int(k) for k in b])
+            text_coord_a = vt0 + (vt2 - vt0) * alpha
+            text_coord_b = (vt1 + (vt2 - vt1) * beta) if second_half else (vt0 + (vt1 - vt0) * beta)
+            if a[X] > b[X]:
+                a, b = b, a
+                text_coord_a, text_coord_b = text_coord_b, text_coord_a
+            for x in range(int(a[X]), int(b[X] + 1)):
+                phi = 1.0 if b[X] == a[X] else (x - a[X]) / float(b[X] - a[X])
+                # d = b - a
+                p = a + (b - a) * phi
+
+                px, py, pz = p
+                xx, yy, zval = int(px), int(py), int(pz)
+                # c.pixel(int(px), int(py), color)
+                # c.pixel(x, i + v0[Y], color)
+                # zval = int(a[Z] + (b[Z] - a[Z]) * phi)
+                # xx = x
+                # yy = i + v0[Y]
+                # # print("xx", xx, "yy", yy)
+                zbuf_val, zbuf_col = zbuf[xx][yy]
+                if zbuf_val < zval:
+                    pt = text_coord_a + (text_coord_b - text_coord_a) * phi
+                    # pti = [int(p_comp) for p_comp in pt]
+                    t_w, t_h = texture.size
+                    ptx, pty = int(pt[X] * t_w), int(pt[Y] * t_h)
+                    color = [int(intensity * color_comp) for color_comp in texture.getpixel((ptx, pty))]
+                    pz_color = zval, color
+                    zbuf[xx][yy] = pz_color
+                    c.pixel(xx, yy, d=color)
