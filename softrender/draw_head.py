@@ -4,9 +4,18 @@ from softrender.graphics import Graphics, Graphics6
 from softrender.model import Model
 from softrender.math import Vec2, Vec3
 from random import randint
+import gc
 import sys
 
 white = [255, 255, 255]
+dark_gray = [20, 20, 20]
+red = [255, 0, 0]
+green = [0, 255, 0]
+blue = [0, 0, 255]
+
+col01 = [255, 255,   0]
+col02 = [  0, 255, 255]
+
 MIN_INT = -sys.maxsize - 1
 
 def draw_wires(graphics: Graphics, model: Model):
@@ -160,6 +169,141 @@ def draw_with_intensity_zbuf_texture(graphics: Graphics, model: Model, texture: 
             # color = [int(intensity * 255)] * 3
             graphics.triangle_texture(t0=(screen_coords[0], texture_coords[0]),
                                       t1=(screen_coords[1], texture_coords[1]),
-                                      t2=(screen_coords[2],texture_coords[2]),
+                                      t2=(screen_coords[2], texture_coords[2]),
                                       texture=texture, zbuf=zbuf, intensity=intensity)
     pass
+
+
+def draw_with_normals_zbuf_texture(graphics: Graphics, model: Model, texture: Image):
+    w, h = graphics.canvas.dimension
+    t_w, t_h = texture.size
+    t_d = 0
+    zbuf = []
+    for x in range(w):
+        column = [(MIN_INT, white) for y in range(h)]
+        zbuf.append(column)
+    # zbuf = [[(MIN_INT, white)] * h] * w
+    w -= 1
+    h -= 1
+    light_dir = Vec3(0.5, 0.5, 1.0)
+    i = 0
+    for face in model.faces:
+        v_idxs = []
+        vt_idxs = []
+        vn_idxs = []
+        for face_components in face:
+            v_idxs.append(face_components[0] - 1)
+            vt_idxs.append(face_components[1] - 1)
+            vn_idxs.append(face_components[2] - 1)
+        screen_coords = []
+        world_coords = []
+        texture_coords = []
+        normal_coords = []
+        for j in range(3):
+            world_coord = model.vertexes[v_idxs[j]]
+            texture_coord = model.texture_coord[vt_idxs[j]]
+            normal_coord = model.normals[vn_idxs[j]]
+            x_screen = (world_coord[0] + 1.0) * w / 2.0
+            y_screen = (world_coord[1] + 1.0) * h / 2.0
+            z_screen = (world_coord[2] + 1.0) * depth / 2.0
+            screen_coords.append(Vec3(x=int(x_screen), y=int(y_screen), z=int(z_screen)))
+            world_coords.append(Vec3(v=world_coord))
+            # texture_coords.append(Vec3(v=[int(tc * dim) for tc, dim in zip(texture_coord, (t_w, t_h, t_d))]))
+            texture_coords.append(Vec3(v=texture_coord))
+            normal_coords.append(Vec3(v=normal_coord))
+
+        # rand_color = (randint(20, 255), randint(20, 255), randint(20, 255))
+        n: Vec3 = (world_coords[2]-world_coords[0]) ^ (world_coords[1]-world_coords[0])
+        n.normalize()
+        intensity = n * light_dir
+        # color = [int(intensity * 255)] * 3
+        # graphics.triangle(screen_coord[0], screen_coord[1], screen_coord[2], color, zbuf=zbuf)
+        # graphics.triangle_texture_normal(t0=(screen_coords[0], texture_coords[0], normal_coords[0]),
+        #                                  t1=(screen_coords[1], texture_coords[1], normal_coords[1]),
+        #                                  t2=(screen_coords[2], texture_coords[2], normal_coords[2]),
+        #                                  texture=texture, zbuf=zbuf, light_dir=light_dir)
+        graphics.triangle_texture_normal(t0=(screen_coords[0], texture_coords[0], normal_coords[0]),
+                                         t1=(screen_coords[1], texture_coords[1], normal_coords[1]),
+                                         t2=(screen_coords[2], texture_coords[2], normal_coords[2]),
+                                         texture=texture, zbuf=zbuf, light_dir=light_dir, glob_intensity=intensity)
+        # gc.collect()
+        # if intensity > 0:
+        #     graphics.triangle_texture_normal(t0=(screen_coords[0], texture_coords[0], normal_coords[0]),
+        #                                      t1=(screen_coords[1], texture_coords[1], normal_coords[1]),
+        #                                      t2=(screen_coords[2], texture_coords[2], normal_coords[2]),
+        #                                      texture=texture, zbuf=zbuf, light_dir=light_dir, glob_intensity=intensity)
+            # graphics.triangle_texture(t0=(screen_coords[0], texture_coords[0]),
+            #                           t1=(screen_coords[1], texture_coords[1]),
+            #                           t2=(screen_coords[2], texture_coords[2]),
+            #                           texture=texture, zbuf=zbuf, intensity=intensity)
+        if i % 200 == 0:
+            print("collected: ", gc.collect())
+        i += 1
+    pass
+
+
+def draw_wires_normals(graphics: Graphics, model: Model):
+    w, h = graphics.canvas.dimension
+    # t_w, t_h = texture.size
+    # t_d = 0
+    # zbuf = []
+    # for x in range(w):
+    #     column = [(MIN_INT, white) for y in range(h)]
+    #     zbuf.append(column)
+    # zbuf = [[(MIN_INT, white)] * h] * w
+    w -= 1
+    h -= 1
+    light_dir = Vec3(0.0, 0.0, -1.0)
+    i = 0
+    for face in model.faces:
+        v_idxs = []
+        vt_idxs = []
+        vn_idxs = []
+        for face_components in face:
+            v_idxs.append(face_components[0] - 1)
+            vt_idxs.append(face_components[1] - 1)
+            vn_idxs.append(face_components[2] - 1)
+        screen_coords = []
+        world_coords = []
+        texture_coords = []
+        normal_coords = []
+        for j in range(3):
+            world_coord = model.vertexes[v_idxs[j]]
+            texture_coord = model.texture_coord[vt_idxs[j]]
+            normal_coord = model.normals[vn_idxs[j]]
+            x_screen = (world_coord[0] + 1.0) * w / 2.0
+            y_screen = (world_coord[1] + 1.0) * h / 2.0
+            z_screen = (world_coord[2] + 1.0) * depth / 2.0
+            screen_coords.append(Vec3(x=int(x_screen), y=int(y_screen), z=int(z_screen)))
+            world_coords.append(Vec3(v=world_coord))
+            # texture_coords.append(Vec3(v=[int(tc * dim) for tc, dim in zip(texture_coord, (t_w, t_h, t_d))]))
+            texture_coords.append(Vec3(v=texture_coord))
+            normal_coords.append(Vec3(v=normal_coord))
+        graphics.line(int(screen_coords[0][0]), int(screen_coords[0][1]), int(screen_coords[1][0]), int(screen_coords[1][1]), dark_gray)
+        graphics.line(int(screen_coords[1][0]), int(screen_coords[1][1]), int(screen_coords[2][0]), int(screen_coords[2][1]), dark_gray)
+        graphics.line(int(screen_coords[2][0]), int(screen_coords[2][1]), int(screen_coords[0][0]), int(screen_coords[0][1]), dark_gray)
+        normal_coords = [nc * 80 for nc in normal_coords]
+        sc_normal = [sc + nc for sc, nc in zip(screen_coords, normal_coords)]
+        # n: Vec3 = (world_coords[1]-world_coords[0]) ^ (world_coords[2]-world_coords[0])
+        n: Vec3 = (world_coords[2]-world_coords[0]) ^ (world_coords[1]-world_coords[0])
+        n.normalize()
+        intensity = n * light_dir
+        # glob_normals = [Vec3(v=)]
+        sc_glob_normal = [sc + nc * 80 for sc, nc in zip(screen_coords, [n] * 3)]
+        glob_norm_col = col01 if intensity < 0 else col02
+        col = red if normal_coords[0] * light_dir > 0 else blue
+        graphics.line(int(screen_coords[0][0]), int(screen_coords[0][1]), int(sc_normal[0][0]), int(sc_normal[0][1]), col)
+        graphics.line(int(screen_coords[0][0]), int(screen_coords[0][1]), int(sc_glob_normal[0][0]), int(sc_glob_normal[0][1]), glob_norm_col)
+
+        col = red if normal_coords[1] * light_dir > 0 else blue
+        graphics.line(int(screen_coords[1][0]), int(screen_coords[1][1]), int(sc_normal[1][0]), int(sc_normal[1][1]), col)
+        graphics.line(int(screen_coords[1][0]), int(screen_coords[1][1]), int(sc_glob_normal[1][0]), int(sc_glob_normal[1][1]), glob_norm_col)
+
+        col = red if normal_coords[2] * light_dir > 0 else blue
+        graphics.line(int(screen_coords[2][0]), int(screen_coords[2][1]), int(sc_normal[2][0]), int(sc_normal[2][1]), col)
+        graphics.line(int(screen_coords[2][0]), int(screen_coords[2][1]), int(sc_glob_normal[2][0]), int(sc_glob_normal[2][1]), glob_norm_col)
+        if i % 200 == 0:
+            print("collected: ", gc.collect())
+        i += 1
+
+

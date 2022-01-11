@@ -8,6 +8,7 @@ class Model:
         self.vertexes: [] = []
         self.texture_coord: [] = []
         self.faces: [] = []
+        self.normals: [] = []
 
     def load(self, file_name):
         with open(file_name) as f:
@@ -21,6 +22,8 @@ class Model:
                     self.vertexes.append([float(coord) for coord in data[1:4]])
                 elif cmd == 'vt':
                     self.texture_coord.append([float(coord) for coord in data[1:4]])
+                elif cmd == 'vn':
+                    self.normals.append([float(coord) for coord in data[1:4]])
                 elif cmd == 'f':
                     self.faces.append([[int(comp) for comp in c_idx.split('/')] for c_idx in data[1:4]])
             pass

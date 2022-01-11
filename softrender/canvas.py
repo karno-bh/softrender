@@ -18,7 +18,7 @@ class Canvas:
             p[1] = g
             p[2] = b
         except:
-            raise
+            pass
 
     def __bytes__(self):
         bytearr = []
