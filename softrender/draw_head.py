@@ -2,7 +2,7 @@ from PIL import Image
 from softrender.canvas import Canvas
 from softrender.graphics import Graphics, Graphics6
 from softrender.model import Model
-from softrender.math import Vec2, Vec3
+from softrender.math import Vec2, Vec3, Vec4, Mat4, X, Y, Z, U
 from random import randint
 import gc
 import sys
@@ -236,8 +236,8 @@ def draw_with_normals_zbuf_texture(graphics: Graphics, model: Model, texture: Im
             #                           t1=(screen_coords[1], texture_coords[1]),
             #                           t2=(screen_coords[2], texture_coords[2]),
             #                           texture=texture, zbuf=zbuf, intensity=intensity)
-        if i % 200 == 0:
-            print("collected: ", gc.collect())
+        # if i % 200 == 0:
+        #     print("collected: ", gc.collect())
         i += 1
     pass
 
@@ -307,3 +307,75 @@ def draw_wires_normals(graphics: Graphics, model: Model):
         i += 1
 
 
+def as_perspective_vec3(v: Vec4) -> Vec3:
+    return Vec3(x=int(v[X] / v[U]), y=int(v[Y] / v[U]), z=int(v[Z] / v[U]))
+
+
+def viewport(x, y, w, h) -> Mat4:
+    # TODO change to more readable
+    m = Mat4.identity()
+    m._data[0][3] = x + w / 2.
+    m._data[1][3] = y + h / 2.
+    m._data[2][3] = depth / 2.
+
+    m._data[0][0] = w / 2.
+    m._data[1][1] = h / 2.
+    m._data[2][2] = depth / 2.
+    return m
+
+
+def draw_with_intensity_zbuf_texture_perspective(graphics: Graphics, model: Model, texture: Image):
+    w, h = graphics.canvas.dimension
+    t_w, t_h = texture.size
+    t_d = 0
+    zbuf = []
+    for x in range(w):
+        column = [(MIN_INT, white) for y in range(h)]
+        zbuf.append(column)
+    # zbuf = [[(MIN_INT, white)] * h] * w
+    # w -= 1
+    # h -= 1
+    light_dir = Vec3(0.0, 0.0, 1.0)
+    camera = Vec3(0, 0, 0.8)
+    projection = Mat4.identity()
+    projection._data[3][2] = -1.0 / camera[Z]
+    vp = viewport(w / 8.0, h / 8.0, w * (3.0 / 4), h * (3.0 / 4))
+    vp_proj = vp * projection
+    for face in model.faces:
+        v_idxs = []
+        vt_idxs = []
+        for face_components in face:
+            v_idxs.append(face_components[0] - 1)
+            vt_idxs.append(face_components[1] - 1)
+        screen_coords = []
+        world_coords = []
+        texture_coords = []
+        for j in range(3):
+            world_coord = model.vertexes[v_idxs[j]]
+            texture_coord = model.texture_coord[vt_idxs[j]]
+            # x_screen = (world_coord[0] + 1.0) * w / 2.0
+            # y_screen = (world_coord[1] + 1.0) * h / 2.0
+            # z_screen = (world_coord[2] + 1.0) * depth / 2.0
+            # screen_coords.append(Vec3(x=int(x_screen), y=int(y_screen), z=int(z_screen)))
+            world_coord_v4 = Vec4(x=world_coord[X], y=world_coord[Y], z=world_coord[Z], u=1.0)
+            sc_v4 = vp * projection * world_coord_v4
+            p_vec = as_perspective_vec3(sc_v4)
+            screen_coords.append(p_vec)
+            world_coords.append(Vec3(v=world_coord))
+            # texture_coords.append(Vec3(v=[int(tc * dim) for tc, dim in zip(texture_coord, (t_w, t_h, t_d))]))
+            texture_coords.append(Vec3(v=texture_coord))
+
+        # rand_color = (randint(20, 255), randint(20, 255), randint(20, 255))
+        # n: Vec3 = (world_coords[2]-world_coords[0]) ^ (world_coords[1]-world_coords[0])
+        n: Vec3 = (world_coords[1]-world_coords[0]) ^ (world_coords[2]-world_coords[0])
+        n.normalize()
+        intensity = n * light_dir
+        # color = [int(intensity * 255)] * 3
+        # graphics.triangle(screen_coord[0], screen_coord[1], screen_coord[2], color, zbuf=zbuf)
+        if intensity > 0:
+            # color = [int(intensity * 255)] * 3
+            graphics.triangle_texture(t0=(screen_coords[0], texture_coords[0]),
+                                      t1=(screen_coords[1], texture_coords[1]),
+                                      t2=(screen_coords[2], texture_coords[2]),
+                                      texture=texture, zbuf=zbuf, intensity=intensity)
+    pass

@@ -402,16 +402,19 @@ class Graphics(GraphicsBase):
                 # xx = x
                 # yy = i + v0[Y]
                 # # print("xx", xx, "yy", yy)
-                zbuf_val, zbuf_col = zbuf[xx][yy]
-                if zbuf_val < zval:
-                    pt = text_coord_a + (text_coord_b - text_coord_a) * phi
-                    # pti = [int(p_comp) for p_comp in pt]
-                    t_w, t_h = texture.size
-                    ptx, pty = int(pt[X] * t_w), int(pt[Y] * t_h)
-                    color = [int(intensity * color_comp) for color_comp in texture.getpixel((ptx, pty))]
-                    pz_color = zval, color
-                    zbuf[xx][yy] = pz_color
-                    c.pixel(xx, yy, d=color)
+                try:
+                    zbuf_val, zbuf_col = zbuf[xx][yy]
+                    if zbuf_val < zval:
+                        pt = text_coord_a + (text_coord_b - text_coord_a) * phi
+                        # pti = [int(p_comp) for p_comp in pt]
+                        t_w, t_h = texture.size
+                        ptx, pty = int(pt[X] * t_w), int(pt[Y] * t_h)
+                        color = [int(intensity * color_comp) for color_comp in texture.getpixel((ptx, pty))]
+                        pz_color = zval, color
+                        zbuf[xx][yy] = pz_color
+                        c.pixel(xx, yy, d=color)
+                except:
+                    pass
 
     def triangle_texture_normal(self, t0, t1, t2, texture, zbuf, light_dir, glob_intensity):
         # light_dir = Vec3(light_dir[X], light_dir[Y], -light_dir[Z])
