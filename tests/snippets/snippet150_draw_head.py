@@ -34,7 +34,7 @@ def test001():
 
 def test002_vp_proj():
     w, h = (800, 800)
-    camera = Vec3(0, 0, 3)
+    camera = Vec3(0, 0, 2)
     projection = Mat4.identity()
     projection._data[3][2] = -1.0 / camera[Z]
     print(projection)

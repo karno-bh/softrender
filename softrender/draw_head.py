@@ -4,6 +4,7 @@ from softrender.graphics import Graphics, Graphics6
 from softrender.model import Model
 from softrender.math import Vec2, Vec3, Vec4, Mat4, X, Y, Z, U
 from random import randint
+import math
 import gc
 import sys
 
@@ -307,8 +308,12 @@ def draw_wires_normals(graphics: Graphics, model: Model):
         i += 1
 
 
+fov_angle = math.tan(math.radians(45.0))
+
+
 def as_perspective_vec3(v: Vec4) -> Vec3:
-    return Vec3(x=int(v[X] / v[U]), y=int(v[Y] / v[U]), z=int(v[Z] / v[U]))
+    fov = v[U] # ???
+    return Vec3(x=int(v[X] / fov), y=int(v[Y] / fov), z=int(v[Z] / fov))
 
 
 def viewport(x, y, w, h) -> Mat4:
@@ -336,9 +341,9 @@ def draw_with_intensity_zbuf_texture_perspective(graphics: Graphics, model: Mode
     # w -= 1
     # h -= 1
     light_dir = Vec3(0.0, 0.0, 1.0)
-    camera = Vec3(0, 0, 0.8)
+    camera = Vec3(0, 0, 3)
     projection = Mat4.identity()
-    projection._data[3][2] = -1.0 / camera[Z]
+    projection._data[3][2] = -1.0 / (camera[Z] * fov_angle)
     vp = viewport(w / 8.0, h / 8.0, w * (3.0 / 4), h * (3.0 / 4))
     vp_proj = vp * projection
     for face in model.faces:
