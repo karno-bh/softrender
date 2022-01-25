@@ -6,7 +6,7 @@ from PIL import Image
 from softrender.canvas import Canvas
 from softrender.graphics import Graphics
 from softrender.model import Model
-from softrender.draw_head import draw_with_intensity_zbuf_texture_perspective, as_perspective_vec3, viewport
+from softrender.draw_model import draw_with_intensity_zbuf_texture_perspective, as_perspective_vec3, viewport
 from softrender.math import Mat4, Vec3, Vec4, X, Y, Z, U
 import obj
 

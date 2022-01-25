@@ -5,7 +5,7 @@ from PIL import Image
 from softrender.canvas import Canvas
 from softrender.graphics import Graphics
 from softrender.model import Model
-from softrender.draw_head import draw_with_intensity
+from softrender.draw_model import draw_with_intensity
 from softrender.math import Vec2, X, Y, Z
 from softrender.colors import *
 import obj

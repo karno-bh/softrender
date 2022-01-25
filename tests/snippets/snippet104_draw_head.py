@@ -6,7 +6,7 @@ from PIL import Image
 from softrender.canvas import Canvas
 from softrender.graphics import Graphics
 from softrender.model import Model
-from softrender.draw_head import draw_with_normals_zbuf_texture, draw_wires_normals
+from softrender.draw_model import draw_with_normals_zbuf_texture, draw_wires_normals
 import obj
 
 white = (255, 255, 255)
