@@ -384,3 +384,82 @@ def draw_with_intensity_zbuf_texture_perspective(graphics: Graphics, model: Mode
                                       t2=(screen_coords[2], texture_coords[2]),
                                       texture=texture, zbuf=zbuf, intensity=intensity)
     pass
+
+
+def look_at(eye: Vec3, center: Vec3, up: Vec3):
+    z = (eye - center).normalize()
+    x = (up ^ z).normalize()
+    y = (z ^ x).normalize()
+    min_v = Mat4(m=[
+        [x[X], x[Y], x[Z], 0.0],
+        [y[X], y[Y], y[Z], 0.0],
+        [z[X], z[Y], z[Z], 0.0],
+        [0.0,  0.0,  0.0,  1.0],
+    ])
+    tr = Mat4(m=[
+        [1.0, 0.0, 0.0, -center[X]],
+        [0.0, 1.0, 0.0, -center[Y]],
+        [0.0, 0.0, 1.0, -center[Z]],
+        [0.0, 0.0, 0.0,        1.0],
+    ])
+    return min_v * tr
+
+
+def draw_with_intensity_zbuf_texture_perspective_look_at(graphics: Graphics, model: Model, texture: Image):
+    eye = Vec3(1., 1., 3.)
+    center = Vec3(0., 0., 0.)
+    w, h = graphics.canvas.dimension
+    t_w, t_h = texture.size
+    t_d = 0
+    zbuf = []
+    for x in range(w):
+        column = [(MIN_INT, white) for y in range(h)]
+        zbuf.append(column)
+    # zbuf = [[(MIN_INT, white)] * h] * w
+    # w -= 1
+    # h -= 1
+    light_dir = Vec3(1.0, -1.0, 1.0).normalize()
+    camera = Vec3(0, 0, 3)
+    model_view = look_at(eye, center, Vec3(x=0., y=1., z=0.))
+    projection = Mat4.identity()
+    projection._data[3][2] = -1.0 / ((eye-center).length())
+    vp = viewport(w / 8.0, h / 8.0, w * (3.0 / 4), h * (3.0 / 4))
+    vp_proj = vp * projection
+    for face in model.faces:
+        v_idxs = []
+        vt_idxs = []
+        for face_components in face:
+            v_idxs.append(face_components[0] - 1)
+            vt_idxs.append(face_components[1] - 1)
+        screen_coords = []
+        world_coords = []
+        texture_coords = []
+        for j in range(3):
+            world_coord = model.vertexes[v_idxs[j]]
+            texture_coord = model.texture_coord[vt_idxs[j]]
+            # x_screen = (world_coord[0] + 1.0) * w / 2.0
+            # y_screen = (world_coord[1] + 1.0) * h / 2.0
+            # z_screen = (world_coord[2] + 1.0) * depth / 2.0
+            # screen_coords.append(Vec3(x=int(x_screen), y=int(y_screen), z=int(z_screen)))
+            world_coord_v4 = Vec4(x=world_coord[X], y=world_coord[Y], z=world_coord[Z], u=1.0)
+            sc_v4 = vp * projection * model_view * world_coord_v4
+            p_vec = as_perspective_vec3(sc_v4)
+            screen_coords.append(p_vec)
+            world_coords.append(Vec3(v=world_coord))
+            # texture_coords.append(Vec3(v=[int(tc * dim) for tc, dim in zip(texture_coord, (t_w, t_h, t_d))]))
+            texture_coords.append(Vec3(v=texture_coord))
+
+        # rand_color = (randint(20, 255), randint(20, 255), randint(20, 255))
+        # n: Vec3 = (world_coords[2]-world_coords[0]) ^ (world_coords[1]-world_coords[0])
+        n: Vec3 = (world_coords[1]-world_coords[0]) ^ (world_coords[2]-world_coords[0])
+        n.normalize()
+        intensity = n * light_dir
+        # color = [int(intensity * 255)] * 3
+        # graphics.triangle(screen_coord[0], screen_coord[1], screen_coord[2], color, zbuf=zbuf)
+        if intensity > 0:
+            # color = [int(intensity * 255)] * 3
+            graphics.triangle_texture(t0=(screen_coords[0], texture_coords[0]),
+                                      t1=(screen_coords[1], texture_coords[1]),
+                                      t2=(screen_coords[2], texture_coords[2]),
+                                      texture=texture, zbuf=zbuf, intensity=intensity)
+    pass

@@ -77,6 +77,7 @@ class Vec3:
     def normalize(self):
         length = self.length()
         self._data = [c / length for c in self]
+        return self
 
     def __getitem__(self, item):
         return self._data[item]
